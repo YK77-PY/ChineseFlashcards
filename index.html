@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chinese Flashcards – Singapore Secondary School</title>
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --accent: #e0e7ff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --green: #10b981;
+      --red: #ef4444;
+      --card-front: #4f46e5;
+      --card-back: #ffffff;
+      --shadow: 0 8px 30px rgba(79,70,229,0.15);
+    }
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --primary: #818cf8;
+      --primary-light: #a5b4fc;
+      --accent: #1e1b4b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #334155;
+      --card-front: #312e81;
+      --card-back: #1e293b;
+      --shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 700px;
+      margin: 0 auto 24px;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    header h1 span { font-size: 0.85rem; display: block; color: var(--muted); font-weight: 400; }
+
+    .theme-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--text);
+      transition: background 0.2s;
+    }
+    .theme-btn:hover { background: var(--accent); }
+
+    /* Level Tabs */
+    .levels {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      max-width: 700px;
+      margin: 0 auto 20px;
+      flex-wrap: wrap;
+    }
+
+    .level-btn {
+      padding: 8px 20px;
+      border-radius: 999px;
+      border: 2px solid var(--primary);
+      background: transparent;
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .level-btn.active, .level-btn:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Stats bar */
+    .stats-bar {
+      max-width: 700px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 999px;
+      margin: 0 12px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    /* Card area */
+    .card-area {
+      max-width: 700px;
+      margin: 0 auto 20px;
+      perspective: 1200px;
+    }
+
+    .card-wrapper {
+      width: 100%;
+      min-height: 320px;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4,0.2,0.2,1);
+      cursor: pointer;
+    }
+
+    .card-wrapper.flipped { transform: rotateY(180deg); }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+      padding: 32px 24px;
+      min-height: 320px;
+    }
+
+    .card-front {
+      background: linear-gradient(135deg, var(--card-front) 0%, #7c3aed 100%);
+      color: #fff;
+    }
+
+    .card-back {
+      background: var(--card-back);
+      border: 2px solid var(--border);
+      transform: rotateY(180deg);
+    }
+
+    .card-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 16px;
+    }
+    .card-back .card-label { color: var(--muted); }
+
+    .chinese-char {
+      font-size: clamp(3.5rem, 10vw, 5.5rem);
+      font-weight: 700;
+      line-height: 1.1;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .card-hint {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      opacity: 0.6;
+    }
+
+    .pinyin {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .meaning {
+      font-size: clamp(1rem, 3vw, 1.3rem);
+      color: var(--text);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .example {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      margin-top: 8px;
+      line-height: 1.6;
+      max-width: 90%;
+    }
+
+    .example .ex-pinyin { font-size: 0.78rem; color: var(--primary-light); }
+
+    /* Sound button */
+    .sound-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: transform 0.15s, background 0.2s;
+      z-index: 5;
+    }
+    .sound-btn:hover { transform: scale(1.15); background: rgba(255,255,255,0.35); }
+    .card-back .sound-btn {
+      background: var(--accent);
+      color: var(--primary);
+    }
+
+    /* Controls */
+    .controls {
+      max-width: 700px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      padding: 10px 22px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ctrl-btn:active { transform: scale(0.96); }
+
+    .btn-prev, .btn-next {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      color: var(--text);
+    }
+    .btn-prev:hover, .btn-next:hover { border-color: var(--primary); color: var(--primary); }
+
+    .btn-shuffle {
+      background: var(--accent);
+      color: var(--primary);
+      border: 2px solid var(--accent);
+    }
+    .btn-shuffle:hover { background: var(--primary); color: #fff; }
+
+    .btn-mastered {
+      background: #d1fae5;
+      color: #065f46;
+      border: 2px solid #a7f3d0;
+    }
+    .btn-mastered:hover { background: var(--green); color: #fff; border-color: var(--green); }
+    [data-theme="dark"] .btn-mastered { background: #064e3b; color: #6ee7b7; border-color: #065f46; }
+
+    .btn-skip {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 2px solid #fecaca;
+    }
+    .btn-skip:hover { background: var(--red); color: #fff; border-color: var(--red); }
+    [data-theme="dark"] .btn-skip { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
+
+    /* Mastered count badges */
+    .badge-row {
+      max-width: 700px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .badge {
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    [data-theme="dark"] .badge-green { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .badge-red { background: #450a0a; color: #fca5a5; }
+
+    .btn-reset {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .btn-reset:hover { color: var(--red); border-color: var(--red); }
+
+    /* Flip hint */
+    .flip-hint {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+
+    /* No speech warning */
+    .no-speech {
+      max-width: 700px;
+      margin: 0 auto 12px;
+      background: #fef9c3;
+      color: #713f12;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 0.82rem;
+      display: none;
+    }
+    [data-theme="dark"] .no-speech { background: #422006; color: #fcd34d; }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .speaking { animation: pulse 0.5s ease; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>汉字闪卡
+    <span>Singapore Secondary School · Chinese Flashcards</span>
+  </h1>
+  <button class="theme-btn" id="themeBtn" title="Toggle dark mode">🌙</button>
+</header>
+
+<div class="levels" id="levelTabs">
+  <button class="level-btn active" data-level="1">Sec 1</button>
+  <button class="level-btn" data-level="2">Sec 2</button>
+  <button class="level-btn" data-level="3">Sec 3</button>
+  <button class="level-btn" data-level="4">Sec 4</button>
+  <button class="level-btn" data-level="all">All Levels</button>
+</div>
+
+<div class="stats-bar">
+  <span id="cardCounter">Card 1 / 30</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:3%"></div></div>
+  <span id="levelLabel">Secondary 1</span>
+</div>
+
+<div id="noSpeech" class="no-speech">⚠️ Your browser may not support text-to-speech. Try Chrome or Safari for audio.</div>
+
+<p class="flip-hint">👆 Tap card to flip &nbsp;·&nbsp; 🔊 Tap speaker for pronunciation</p>
+
+<div class="card-area">
+  <div class="card-wrapper" id="cardWrapper">
+    <!-- Front -->
+    <div class="card-face card-front">
+      <button class="sound-btn" id="soundFront" title="Hear pronunciation">🔊</button>
+      <div class="card-label">Click to reveal answer</div>
+      <div class="chinese-char" id="charDisplay">学校</div>
+      <div class="card-hint">What is the pinyin &amp; meaning?</div>
+    </div>
+    <!-- Back -->
+    <div class="card-face card-back">
+      <button class="sound-btn" id="soundBack" title="Hear pronunciation">🔊</button>
+      <div class="card-label">Answer</div>
+      <div class="pinyin" id="pinyinDisplay">xuéxiào</div>
+      <div class="meaning" id="meaningDisplay">school</div>
+      <div class="example" id="exampleDisplay"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn btn-prev" id="btnPrev">◀ Prev</button>
+  <button class="ctrl-btn btn-shuffle" id="btnShuffle">🔀 Shuffle</button>
+  <button class="ctrl-btn btn-next" id="btnNext">Next ▶</button>
+</div>
+
+<div class="controls">
+  <button class="ctrl-btn btn-mastered" id="btnMastered">✓ Mastered</button>
+  <button class="ctrl-btn btn-skip" id="btnSkip">✗ Not Yet</button>
+</div>
+
+<div class="badge-row">
+  <span class="badge badge-green" id="masteredBadge">✓ 0 Mastered</span>
+  <span class="badge badge-red" id="notYetBadge">✗ 0 Not Yet</span>
+  <button class="btn-reset" id="btnReset">Reset Progress</button>
+</div>
+
+<script>
+// ─── Vocabulary Database ──────────────────────────────────────────────────────
+// Format: { char, pinyin, meaning, example?, exPinyin? }
+
+const VOCAB = {
+  1: [
+    { char:"学校", pinyin:"xuéxiào", meaning:"school", example:"我每天去学校上课。", exPinyin:"Wǒ měitiān qù xuéxiào shàngkè." },
+    { char:"同学", pinyin:"tóngxué", meaning:"classmate", example:"她是我最好的同学。", exPinyin:"Tā shì wǒ zuì hǎo de tóngxué." },
+    { char:"老师", pinyin:"lǎoshī", meaning:"teacher", example:"老师教我们写汉字。", exPinyin:"Lǎoshī jiāo wǒmen xiě Hànzì." },
+    { char:"朋友", pinyin:"péngyou", meaning:"friend", example:"我有很多好朋友。", exPinyin:"Wǒ yǒu hěn duō hǎo péngyou." },
+    { char:"家庭", pinyin:"jiātíng", meaning:"family", example:"家庭对我来说很重要。", exPinyin:"Jiātíng duì wǒ lái shuō hěn zhòngyào." },
+    { char:"父母", pinyin:"fùmǔ", meaning:"parents", example:"父母非常爱护我们。", exPinyin:"Fùmǔ fēicháng àihù wǒmen." },
+    { char:"兄弟", pinyin:"xiōngdì", meaning:"brothers / siblings", example:"我有两个兄弟。", exPinyin:"Wǒ yǒu liǎng gè xiōngdì." },
+    { char:"书包", pinyin:"shūbāo", meaning:"school bag", example:"我的书包很重。", exPinyin:"Wǒ de shūbāo hěn zhòng." },
+    { char:"作业", pinyin:"zuòyè", meaning:"homework", example:"我每天都要做作业。", exPinyin:"Wǒ měitiān dōu yào zuò zuòyè." },
+    { char:"考试", pinyin:"kǎoshì", meaning:"examination / test", example:"明天有数学考试。", exPinyin:"Míngtiān yǒu shùxué kǎoshì." },
+    { char:"成绩", pinyin:"chéngjì", meaning:"results / grades", example:"他的成绩很好。", exPinyin:"Tā de chéngjì hěn hǎo." },
+    { char:"图书馆", pinyin:"túshūguǎn", meaning:"library", example:"我在图书馆借书。", exPinyin:"Wǒ zài túshūguǎn jiè shū." },
+    { char:"操场", pinyin:"cāochǎng", meaning:"school field / sports ground", example:"同学们在操场上踢足球。", exPinyin:"Tóngxuémen zài cāochǎng shang tī zúqiú." },
+    { char:"食堂", pinyin:"shítáng", meaning:"canteen", example:"我们在食堂吃午餐。", exPinyin:"Wǒmen zài shítáng chī wǔcān." },
+    { char:"上课", pinyin:"shàngkè", meaning:"to attend class", example:"上课要认真听讲。", exPinyin:"Shàngkè yào rènzhēn tīngjiǎng." },
+    { char:"放学", pinyin:"fàngxué", meaning:"school dismissal", example:"放学后我去打篮球。", exPinyin:"Fàngxué hòu wǒ qù dǎ lánqiú." },
+    { char:"假期", pinyin:"jiàqī", meaning:"holiday / vacation", example:"假期里我去旅行了。", exPinyin:"Jiàqī lǐ wǒ qù lǚxíng le." },
+    { char:"努力", pinyin:"nǔlì", meaning:"to work hard; diligent", example:"我们要努力学习。", exPinyin:"Wǒmen yào nǔlì xuéxí." },
+    { char:"认真", pinyin:"rènzhēn", meaning:"serious; conscientious", example:"他做事非常认真。", exPinyin:"Tā zuòshì fēicháng rènzhēn." },
+    { char:"聪明", pinyin:"cōngming", meaning:"smart; intelligent", example:"这个小孩很聪明。", exPinyin:"Zhège xiǎohái hěn cōngming." },
+    { char:"快乐", pinyin:"kuàilè", meaning:"happy; joyful", example:"祝你生日快乐！", exPinyin:"Zhù nǐ shēngrì kuàilè!" },
+    { char:"健康", pinyin:"jiànkāng", meaning:"health; healthy", example:"我们要保持身体健康。", exPinyin:"Wǒmen yào bǎochí shēntǐ jiànkāng." },
+    { char:"运动", pinyin:"yùndòng", meaning:"exercise; sport", example:"每天运动对身体有好处。", exPinyin:"Měitiān yùndòng duì shēntǐ yǒu hǎochù." },
+    { char:"喜欢", pinyin:"xǐhuān", meaning:"to like; to enjoy", example:"我喜欢看书。", exPinyin:"Wǒ xǐhuān kàn shū." },
+    { char:"安静", pinyin:"ānjìng", meaning:"quiet; calm", example:"图书馆里很安静。", exPinyin:"Túshūguǎn lǐ hěn ānjìng." },
+    { char:"热闹", pinyin:"rènao", meaning:"lively; bustling", example:"节日的街道很热闹。", exPinyin:"Jiérì de jiēdào hěn rènao." },
+    { char:"帮助", pinyin:"bāngzhù", meaning:"to help; assistance", example:"我们应该互相帮助。", exPinyin:"Wǒmen yīnggāi hùxiāng bāngzhù." },
+    { char:"整洁", pinyin:"zhěngjié", meaning:"tidy; neat and clean", example:"教室要保持整洁。", exPinyin:"Jiàoshì yào bǎochí zhěngjié." },
+    { char:"礼貌", pinyin:"lǐmào", meaning:"polite; courtesy", example:"我们要有礼貌地与人交谈。", exPinyin:"Wǒmen yào yǒu lǐmào de yǔ rén jiāotán." },
+    { char:"尊重", pinyin:"zūnzhòng", meaning:"to respect; respect", example:"我们要尊重师长。", exPinyin:"Wǒmen yào zūnzhòng shīzhǎng." },
+  ],
+  2: [
+    { char:"环境", pinyin:"huánjìng", meaning:"environment; surroundings", example:"我们要保护环境。", exPinyin:"Wǒmen yào bǎohù huánjìng." },
+    { char:"保护", pinyin:"bǎohù", meaning:"to protect", example:"人人都应该保护地球。", exPinyin:"Rén rén dōu yīnggāi bǎohù dìqiú." },
+    { char:"社区", pinyin:"shèqū", meaning:"community; neighbourhood", example:"我们的社区干净又安全。", exPinyin:"Wǒmen de shèqū gānjìng yòu ānquán." },
+    { char:"邻居", pinyin:"línjū", meaning:"neighbour", example:"我们要与邻居和睦相处。", exPinyin:"Wǒmen yào yǔ línjū hémù xiāngchǔ." },
+    { char:"交通", pinyin:"jiāotōng", meaning:"traffic; transportation", example:"新加坡的公共交通很方便。", exPinyin:"Xīnjiāpō de gōnggòng jiāotōng hěn fāngbiàn." },
+    { char:"传统", pinyin:"chuántǒng", meaning:"tradition; traditional", example:"华人有许多传统节日。", exPinyin:"Huárén yǒu xǔduō chuántǒng jiérì." },
+    { char:"文化", pinyin:"wénhuà", meaning:"culture", example:"新加坡有多元文化。", exPinyin:"Xīnjiāpō yǒu duōyuán wénhuà." },
+    { char:"科技", pinyin:"kējì", meaning:"science and technology", example:"科技改变了我们的生活。", exPinyin:"Kējì gǎibiàn le wǒmen de shēnghuó." },
+    { char:"网络", pinyin:"wǎngluò", meaning:"internet; network", example:"网络让人们的沟通更方便。", exPinyin:"Wǎngluò ràng rénmen de gōutōng gèng fāngbiàn." },
+    { char:"方便", pinyin:"fāngbiàn", meaning:"convenient; easy", example:"手机使生活更方便。", exPinyin:"Shǒujī shǐ shēnghuó gèng fāngbiàn." },
+    { char:"影响", pinyin:"yǐngxiǎng", meaning:"influence; to affect", example:"网络对青少年有很大影响。", exPinyin:"Wǎngluò duì qīngshàonián yǒu hěn dà yǐngxiǎng." },
+    { char:"负责", pinyin:"fùzé", meaning:"responsible; to be responsible", example:"我们要对自己的行为负责。", exPinyin:"Wǒmen yào duì zìjǐ de xíngwéi fùzé." },
+    { char:"合作", pinyin:"hézuò", meaning:"cooperation; to cooperate", example:"团队精神需要互相合作。", exPinyin:"Tuánduì jīngshén xūyào hùxiāng hézuò." },
+    { char:"友谊", pinyin:"yǒuyì", meaning:"friendship", example:"真正的友谊是无价的。", exPinyin:"Zhēnzhèng de yǒuyì shì wújià de." },
+    { char:"感恩", pinyin:"gǎn'ēn", meaning:"gratitude; to be grateful", example:"我们要懂得感恩。", exPinyin:"Wǒmen yào dǒngde gǎn'ēn." },
+    { char:"贡献", pinyin:"gòngxiàn", meaning:"contribution; to contribute", example:"他为社会作出了很大的贡献。", exPinyin:"Tā wèi shèhuì zuòchū le hěn dà de gòngxiàn." },
+    { char:"进步", pinyin:"jìnbù", meaning:"progress; to improve", example:"只要努力，一定会有进步。", exPinyin:"Zhǐyào nǔlì, yīdìng huì yǒu jìnbù." },
+    { char:"计划", pinyin:"jìhuà", meaning:"plan; to plan", example:"我们要做好学习计划。", exPinyin:"Wǒmen yào zuòhǎo xuéxí jìhuà." },
+    { char:"目标", pinyin:"mùbiāo", meaning:"goal; target", example:"每个人都应该有自己的目标。", exPinyin:"Měi gè rén dōu yīnggāi yǒu zìjǐ de mùbiāo." },
+    { char:"习惯", pinyin:"xíguàn", meaning:"habit; to be accustomed to", example:"养成好习惯很重要。", exPinyin:"Yǎngchéng hǎo xíguàn hěn zhòngyào." },
+    { char:"节俭", pinyin:"jiéjiǎn", meaning:"thrifty; frugal", example:"我们要养成节俭的习惯。", exPinyin:"Wǒmen yào yǎngchéng jiéjiǎn de xíguàn." },
+    { char:"多元", pinyin:"duōyuán", meaning:"diverse; multi-faceted", example:"新加坡是一个多元种族的国家。", exPinyin:"Xīnjiāpō shì yīgè duōyuán zhǒngzú de guójiā." },
+    { char:"种族", pinyin:"zhǒngzú", meaning:"race; ethnicity", example:"各种族之间要和谐共处。", exPinyin:"Gè zhǒngzú zhī jiān yào héxié gòngchǔ." },
+    { char:"和谐", pinyin:"héxié", meaning:"harmonious; harmony", example:"我们要维护社会的和谐。", exPinyin:"Wǒmen yào wéihù shèhuì de héxié." },
+    { char:"素养", pinyin:"sùyǎng", meaning:"quality; cultivation; literacy", example:"我们要提高自身的素养。", exPinyin:"Wǒmen yào tígāo zìshēn de sùyǎng." },
+    { char:"勤劳", pinyin:"qínláo", meaning:"hardworking; diligent", example:"勤劳是成功的基础。", exPinyin:"Qínláo shì chénggōng de jīchǔ." },
+    { char:"自律", pinyin:"zìlǜ", meaning:"self-discipline", example:"学生要学会自律。", exPinyin:"Xuéshēng yào xuéhuì zìlǜ." },
+    { char:"创意", pinyin:"chuàngyì", meaning:"creativity; creative", example:"他的设计很有创意。", exPinyin:"Tā de shèjì hěn yǒu chuàngyì." },
+    { char:"沟通", pinyin:"gōutōng", meaning:"communication; to communicate", example:"良好的沟通能解决很多问题。", exPinyin:"Liánghǎo de gōutōng néng jiějué hěn duō wèntí." },
+    { char:"责任", pinyin:"zérèn", meaning:"responsibility; duty", example:"每个人都有自己的责任。", exPinyin:"Měi gè rén dōu yǒu zìjǐ de zérèn." },
+  ],
+  3: [
+    { char:"抱负", pinyin:"bàofù", meaning:"ambition; aspiration", example:"年轻人要有远大的抱负。", exPinyin:"Niánqīng rén yào yǒu yuǎndà de bàofù." },
+    { char:"坚持", pinyin:"jiānchí", meaning:"to persist; to persevere", example:"不管遇到什么困难，我都会坚持。", exPinyin:"Bùguǎn yùdào shénme kùnnán, wǒ dōu huì jiānchí." },
+    { char:"毅力", pinyin:"yìlì", meaning:"perseverance; willpower", example:"成功的人都具有坚强的毅力。", exPinyin:"Chénggōng de rén dōu jùyǒu jiānqiáng de yìlì." },
+    { char:"挑战", pinyin:"tiǎozhàn", meaning:"challenge; to challenge", example:"我们要勇敢地面对挑战。", exPinyin:"Wǒmen yào yǒnggǎn de miànduì tiǎozhàn." },
+    { char:"克服", pinyin:"kèfú", meaning:"to overcome", example:"他克服了重重困难，终于成功了。", exPinyin:"Tā kèfú le chóngchóng kùnnán, zhōngyú chénggōng le." },
+    { char:"机会", pinyin:"jīhuì", meaning:"opportunity; chance", example:"要善用每一个机会。", exPinyin:"Yào shànyòng měi yīgè jīhuì." },
+    { char:"竞争", pinyin:"jìngzhēng", meaning:"competition; to compete", example:"现代社会的竞争非常激烈。", exPinyin:"Xiàndài shèhuì de jìngzhēng fēicháng jīliè." },
+    { char:"压力", pinyin:"yālì", meaning:"pressure; stress", example:"学生面对很大的学习压力。", exPinyin:"Xuéshēng miànduì hěn dà de xuéxí yālì." },
+    { char:"价值观", pinyin:"jiàzhíguān", meaning:"values; set of values", example:"我们要树立正确的价值观。", exPinyin:"Wǒmen yào shùlì zhèngquè de jiàzhíguān." },
+    { char:"诚信", pinyin:"chéngxìn", meaning:"integrity; honesty", example:"诚信是做人的根本。", exPinyin:"Chéngxìn shì zuòrén de gēnběn." },
+    { char:"道德", pinyin:"dàodé", meaning:"morality; ethics", example:"道德品质比成绩更重要。", exPinyin:"Dàodé pǐnzhì bǐ chéngjì gèng zhòngyào." },
+    { char:"品格", pinyin:"pǐngé", meaning:"character; moral character", example:"良好的品格是成功的基础。", exPinyin:"Liánghǎo de pǐngé shì chénggōng de jīchǔ." },
+    { char:"公平", pinyin:"gōngpíng", meaning:"fair; fairness", example:"社会应当对每个人公平。", exPinyin:"Shèhuì yīngdāng duì měi gè rén gōngpíng." },
+    { char:"正义", pinyin:"zhèngyì", meaning:"justice; righteousness", example:"我们要伸张正义。", exPinyin:"Wǒmen yào shēnzhāng zhèngyì." },
+    { char:"全球暖化", pinyin:"quánqiú nuǎnhuà", meaning:"global warming", example:"全球暖化是当今最严重的环境问题。", exPinyin:"Quánqiú nuǎnhuà shì dāngjīn zuì yánzhòng de huánjìng wèntí." },
+    { char:"可持续", pinyin:"kě chíxù", meaning:"sustainable", example:"我们要推动可持续发展。", exPinyin:"Wǒmen yào tuīdòng kě chíxù fāzhǎn." },
+    { char:"创新", pinyin:"chuàngxīn", meaning:"innovation; to innovate", example:"创新是推动社会进步的动力。", exPinyin:"Chuàngxīn shì tuīdòng shèhuì jìnbù de dònglì." },
+    { char:"探索", pinyin:"tànsuǒ", meaning:"to explore; exploration", example:"科学家不断探索宇宙的奥秘。", exPinyin:"Kēxuéjiā bùduàn tànsuǒ yǔzhòu de àomì." },
+    { char:"传承", pinyin:"chuánchéng", meaning:"to inherit and carry on; heritage", example:"我们要传承优秀的文化遗产。", exPinyin:"Wǒmen yào chuánchéng yōuxiù de wénhuà yíchǎn." },
+    { char:"奉献", pinyin:"fèngxiàn", meaning:"dedication; to devote oneself", example:"他把一生奉献给了教育事业。", exPinyin:"Tā bǎ yīshēng fèngxiàn gěi le jiàoyù shìyè." },
+    { char:"包容", pinyin:"bāoróng", meaning:"tolerance; to be tolerant", example:"我们要学会包容不同的文化。", exPinyin:"Wǒmen yào xuéhuì bāoróng bùtóng de wénhuà." },
+    { char:"反思", pinyin:"fǎnsī", meaning:"reflection; to reflect", example:"我们要时常反思自己的行为。", exPinyin:"Wǒmen yào shícháng fǎnsī zìjǐ de xíngwéi." },
+    { char:"逆境", pinyin:"nìjìng", meaning:"adversity; difficult circumstances", example:"在逆境中成长是一种历练。", exPinyin:"Zài nìjìng zhōng chéngzhǎng shì yī zhǒng lìliàn." },
+    { char:"胸怀", pinyin:"xiōnghuái", meaning:"breadth of mind; aspirations", example:"要有宽广的胸怀，接受不同意见。", exPinyin:"Yào yǒu kuānguǎng de xiōnghuái, jiēshòu bùtóng yìjiàn." },
+    { char:"根基", pinyin:"gēnjī", meaning:"foundation; root", example:"良好的教育是个人发展的根基。", exPinyin:"Liánghǎo de jiàoyù shì gèrén fāzhǎn de gēnjī." },
+    { char:"气候变化", pinyin:"qìhòu biànhuà", meaning:"climate change", example:"气候变化影响全球生态系统。", exPinyin:"Qìhòu biànhuà yǐngxiǎng quánqiú shēngtài xìtǒng." },
+    { char:"惜时", pinyin:"xīshí", meaning:"to treasure time; time-consciousness", example:"我们要养成惜时的习惯。", exPinyin:"Wǒmen yào yǎngchéng xīshí de xíguàn." },
+    { char:"典范", pinyin:"diǎnfàn", meaning:"model; exemplar; paragon", example:"他是我们学习的典范。", exPinyin:"Tā shì wǒmen xuéxí de diǎnfàn." },
+    { char:"砥砺", pinyin:"dǐlì", meaning:"to temper oneself; to strive", example:"要在困难中砥砺自己。", exPinyin:"Yào zài kùnnán zhōng dǐlì zìjǐ." },
+    { char:"精神", pinyin:"jīngshén", meaning:"spirit; mental; morale", example:"我们要发扬团队精神。", exPinyin:"Wǒmen yào fāyáng tuánduì jīngshén." },
+  ],
+  4: [
+    { char:"坚韧不拔", pinyin:"jiān rèn bù bá", meaning:"resolute and persevering; indomitable", example:"成功需要坚韧不拔的精神。", exPinyin:"Chénggōng xūyào jiān rèn bù bá de jīngshén." },
+    { char:"持之以恒", pinyin:"chí zhī yǐ héng", meaning:"to persevere; to keep at it consistently", example:"学习语言需要持之以恒。", exPinyin:"Xuéxí yǔyán xūyào chí zhī yǐ héng." },
+    { char:"勤能补拙", pinyin:"qín néng bǔ zhuō", meaning:"diligence can make up for lack of talent", example:"勤能补拙，只要努力就一定进步。", exPinyin:"Qín néng bǔ zhuō, zhǐyào nǔlì jiù yīdìng jìnbù." },
+    { char:"学无止境", pinyin:"xué wú zhǐ jìng", meaning:"learning knows no bounds; there is no end to learning", example:"学无止境，我们要终身学习。", exPinyin:"Xué wú zhǐ jìng, wǒmen yào zhōngshēn xuéxí." },
+    { char:"废寝忘食", pinyin:"fèi qǐn wàng shí", meaning:"to be so absorbed in work that one forgets to eat and sleep", example:"他废寝忘食地钻研学问。", exPinyin:"Tā fèi qǐn wàng shí de zuānyán xuéwèn." },
+    { char:"锲而不舍", pinyin:"qiè ér bù shě", meaning:"to persevere; to keep chiselling away", example:"锲而不舍，金石可镂。", exPinyin:"Qiè ér bù shě, jīn shí kě lòu." },
+    { char:"精益求精", pinyin:"jīng yì qiú jīng", meaning:"to constantly improve; to keep improving", example:"工匠精神就是精益求精。", exPinyin:"Gōngjiàng jīngshén jiùshì jīng yì qiú jīng." },
+    { char:"博学多才", pinyin:"bó xué duō cái", meaning:"learned and talented; versatile", example:"他博学多才，深受同学爱戴。", exPinyin:"Tā bó xué duō cái, shēn shòu tóngxué àidài." },
+    { char:"德才兼备", pinyin:"dé cái jiān bèi", meaning:"to have both virtue and talent", example:"我们要做德才兼备的人。", exPinyin:"Wǒmen yào zuò dé cái jiān bèi de rén." },
+    { char:"以身作则", pinyin:"yǐ shēn zuò zé", meaning:"to lead by example; to set an example", example:"老师以身作则，影响学生。", exPinyin:"Lǎoshī yǐ shēn zuò zé, yǐngxiǎng xuéshēng." },
+    { char:"薪火相传", pinyin:"xīn huǒ xiāng chuán", meaning:"to pass on from generation to generation", example:"文化靠薪火相传得以延续。", exPinyin:"Wénhuà kào xīn huǒ xiāng chuán dé yǐ yánxù." },
+    { char:"与时俱进", pinyin:"yǔ shí jù jìn", meaning:"to keep pace with the times; to advance with the times", example:"我们要与时俱进，不断学习新知识。", exPinyin:"Wǒmen yào yǔ shí jù jìn, bùduàn xuéxí xīn zhīshì." },
+    { char:"自强不息", pinyin:"zì qiáng bù xī", meaning:"to strive continuously for self-improvement; to be unrelenting", example:"中华民族有自强不息的精神。", exPinyin:"Zhōnghuá mínzú yǒu zì qiáng bù xī de jīngshén." },
+    { char:"积少成多", pinyin:"jī shǎo chéng duō", meaning:"many a little makes a mickle; small savings accumulate into wealth", example:"积少成多，日积月累就能有大进步。", exPinyin:"Jī shǎo chéng duō, rì jī yuè lěi jiù néng yǒu dà jìnbù." },
+    { char:"滴水穿石", pinyin:"dī shuǐ chuān shí", meaning:"constant dripping wears away the stone; perseverance prevails", example:"滴水穿石，努力必有收获。", exPinyin:"Dī shuǐ chuān shí, nǔlì bì yǒu shōuhuò." },
+    { char:"见贤思齐", pinyin:"jiàn xián sī qí", meaning:"to see a worthy person and wish to emulate them", example:"见贤思齐，向优秀的人学习。", exPinyin:"Jiàn xián sī qí, xiàng yōuxiù de rén xuéxí." },
+    { char:"不耻下问", pinyin:"bù chǐ xià wèn", meaning:"not ashamed to ask questions of one's inferiors", example:"不耻下问是学习的好态度。", exPinyin:"Bù chǐ xià wèn shì xuéxí de hǎo tàidù." },
+    { char:"言行一致", pinyin:"yán xíng yī zhì", meaning:"to match words with deeds; to practise what one preaches", example:"我们要言行一致，说到做到。", exPinyin:"Wǒmen yào yán xíng yī zhì, shuōdào zuòdào." },
+    { char:"舍己为人", pinyin:"shě jǐ wèi rén", meaning:"to sacrifice oneself for others; selfless", example:"消防员舍己为人，值得敬佩。", exPinyin:"Xiāofángyuán shě jǐ wèi rén, zhídé jìngpèi." },
+    { char:"患难与共", pinyin:"huàn nàn yǔ gòng", meaning:"to share weal and woe; to stand by each other in times of trouble", example:"真正的朋友能患难与共。", exPinyin:"Zhēnzhèng de péngyǒu néng huàn nàn yǔ gòng." },
+    { char:"居安思危", pinyin:"jū ān sī wēi", meaning:"to think of danger in times of peace; to be prepared for adversity", example:"国家在繁荣时也要居安思危。", exPinyin:"Guójiā zài fánróng shí yě yào jū ān sī wēi." },
+    { char:"有教无类", pinyin:"yǒu jiào wú lèi", meaning:"education for all regardless of background", example:"孔子提倡有教无类的教育理念。", exPinyin:"Kǒngzǐ tíchàng yǒu jiào wú lèi de jiàoyù lǐniàn." },
+    { char:"任重道远", pinyin:"rèn zhòng dào yuǎn", meaning:"the burden is heavy and the road is long; great responsibility", example:"保护地球，任重道远。", exPinyin:"Bǎohù dìqiú, rèn zhòng dào yuǎn." },
+    { char:"百折不挠", pinyin:"bǎi zhé bù náo", meaning:"never give up despite repeated setbacks; indomitable", example:"他百折不挠，终于实现了梦想。", exPinyin:"Tā bǎi zhé bù náo, zhōngyú shíxiàn le mèngxiǎng." },
+    { char:"推己及人", pinyin:"tuī jǐ jí rén", meaning:"to put oneself in another's position; empathy in action", example:"推己及人，学会体谅他人。", exPinyin:"Tuī jǐ jí rén, xuéhuì tǐliàng tārén." },
+    { char:"格物致知", pinyin:"gé wù zhì zhī", meaning:"to investigate things and extend knowledge; empirical learning", example:"格物致知是中国传统的治学方法。", exPinyin:"Gé wù zhì zhī shì Zhōngguó chuántǒng de zhìxué fāngfǎ." },
+    { char:"因材施教", pinyin:"yīn cái shī jiào", meaning:"to teach students according to their abilities; differentiated instruction", example:"好老师懂得因材施教。", exPinyin:"Hǎo lǎoshī dǒngde yīn cái shī jiào." },
+    { char:"知行合一", pinyin:"zhī xíng hé yī", meaning:"the unity of knowledge and action; combining theory with practice", example:"知行合一，学以致用。", exPinyin:"Zhī xíng hé yī, xué yǐ zhì yòng." },
+    { char:"众志成城", pinyin:"zhòng zhì chéng chéng", meaning:"when all are of one mind, their combined strength is impregnable; unity is strength", example:"众志成城，我们一定能克服困难。", exPinyin:"Zhòng zhì chéng chéng, wǒmen yīdìng néng kèfú kùnnán." },
+    { char:"鞠躬尽瘁", pinyin:"jū gōng jìn cuì", meaning:"to give one's all; to spare no effort in serving", example:"他鞠躬尽瘁，为国家作出巨大贡献。", exPinyin:"Tā jū gōng jìn cuì, wèi guójiā zuòchū jùdà gòngxiàn." },
+  ],
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentLevel = 1;
+let cards = [];
+let index = 0;
+let isFlipped = false;
+let mastered = {};
+let notYet = {};
+
+function initLevel(level) {
+  if (level === 'all') {
+    cards = [...VOCAB[1], ...VOCAB[2], ...VOCAB[3], ...VOCAB[4]];
+  } else {
+    cards = [...VOCAB[level]];
+  }
+  currentLevel = level;
+  mastered = {};
+  notYet = {};
+  index = 0;
+  isFlipped = false;
+  cardWrapper.classList.remove('flipped');
+  renderCard();
+  updateBadges();
+}
+
+function renderCard() {
+  const c = cards[index];
+  document.getElementById('charDisplay').textContent = c.char;
+  document.getElementById('pinyinDisplay').textContent = c.pinyin;
+  document.getElementById('meaningDisplay').textContent = c.meaning;
+  const exDiv = document.getElementById('exampleDisplay');
+  if (c.example) {
+    exDiv.innerHTML = `<div>${c.example}</div><div class="ex-pinyin">${c.exPinyin || ''}</div>`;
+  } else {
+    exDiv.innerHTML = '';
+  }
+  const total = cards.length;
+  document.getElementById('cardCounter').textContent = `Card ${index + 1} / ${total}`;
+  const pct = Math.max(3, Math.round(((index + 1) / total) * 100));
+  document.getElementById('progressFill').style.width = pct + '%';
+  const labels = { 1:'Secondary 1', 2:'Secondary 2', 3:'Secondary 3', 4:'Secondary 4', all:'All Levels' };
+  document.getElementById('levelLabel').textContent = labels[currentLevel] || '';
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  cardWrapper.classList.toggle('flipped', isFlipped);
+}
+
+function speakCurrent() {
+  const text = cards[index].char;
+  speak(text);
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) {
+    document.getElementById('noSpeech').style.display = 'block';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.85;
+  u.pitch = 1.0;
+
+  // Try to pick a Chinese voice
+  const voices = window.speechSynthesis.getVoices();
+  const cnVoice = voices.find(v => v.lang.startsWith('zh'));
+  if (cnVoice) u.voice = cnVoice;
+
+  window.speechSynthesis.speak(u);
+}
+
+function goNext() {
+  index = (index + 1) % cards.length;
+  isFlipped = false;
+  cardWrapper.classList.remove('flipped');
+  renderCard();
+}
+function goPrev() {
+  index = (index - 1 + cards.length) % cards.length;
+  isFlipped = false;
+  cardWrapper.classList.remove('flipped');
+  renderCard();
+}
+function shuffle() {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  index = 0;
+  isFlipped = false;
+  cardWrapper.classList.remove('flipped');
+  renderCard();
+}
+
+function markMastered() {
+  mastered[index] = true;
+  delete notYet[index];
+  updateBadges();
+  goNext();
+}
+function markNotYet() {
+  notYet[index] = true;
+  delete mastered[index];
+  updateBadges();
+  goNext();
+}
+function updateBadges() {
+  document.getElementById('masteredBadge').textContent = `✓ ${Object.keys(mastered).length} Mastered`;
+  document.getElementById('notYetBadge').textContent = `✗ ${Object.keys(notYet).length} Not Yet`;
+}
+
+// ─── DOM wiring ───────────────────────────────────────────────────────────────
+const cardWrapper = document.getElementById('cardWrapper');
+cardWrapper.addEventListener('click', function(e) {
+  if (e.target.classList.contains('sound-btn') || e.target.closest('.sound-btn')) return;
+  flipCard();
+});
+
+document.getElementById('soundFront').addEventListener('click', (e) => { e.stopPropagation(); speakCurrent(); });
+document.getElementById('soundBack').addEventListener('click', (e) => { e.stopPropagation(); speakCurrent(); });
+document.getElementById('btnPrev').addEventListener('click', goPrev);
+document.getElementById('btnNext').addEventListener('click', goNext);
+document.getElementById('btnShuffle').addEventListener('click', shuffle);
+document.getElementById('btnMastered').addEventListener('click', markMastered);
+document.getElementById('btnSkip').addEventListener('click', markNotYet);
+document.getElementById('btnReset').addEventListener('click', () => {
+  mastered = {}; notYet = {}; updateBadges();
+  index = 0; isFlipped = false;
+  cardWrapper.classList.remove('flipped');
+  renderCard();
+});
+
+// Level tabs
+document.getElementById('levelTabs').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('level-btn')) return;
+  document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  const lv = e.target.dataset.level === 'all' ? 'all' : parseInt(e.target.dataset.level);
+  initLevel(lv);
+});
+
+// Theme
+const themeBtn = document.getElementById('themeBtn');
+let dark = false;
+themeBtn.addEventListener('click', () => {
+  dark = !dark;
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : '');
+  themeBtn.textContent = dark ? '☀️' : '🌙';
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  switch(e.key) {
+    case ' ': case 'Enter': flipCard(); break;
+    case 'ArrowRight': goNext(); break;
+    case 'ArrowLeft': goPrev(); break;
+    case 's': case 'S': speakCurrent(); break;
+    case 'm': case 'M': markMastered(); break;
+    case 'x': case 'X': markNotYet(); break;
+  }
+});
+
+// Load voices asynchronously (Chrome needs this)
+if (window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+}
+
+// Init
+initLevel(1);
+</script>
+
+<!-- Keyboard shortcut hint -->
+<div style="max-width:700px;margin:0 auto;text-align:center;color:var(--muted);font-size:0.78rem;padding-bottom:24px;">
+  ⌨️ Keyboard: <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">Space</kbd> flip &nbsp;
+  <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">← →</kbd> navigate &nbsp;
+  <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">S</kbd> sound &nbsp;
+  <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">M</kbd> mastered &nbsp;
+  <kbd style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">X</kbd> not yet
+</div>
+
+</body>
+</html>
